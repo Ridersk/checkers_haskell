@@ -10,9 +10,9 @@ import Graphics.UI.Gtk.Board.TiledBoard
 gtkGame :: IO (Game CheckersGame Int Tile Player Piece)
 gtkGame = do
   -- The images used for tiles and pieces
-  tile <- pixbufNewFromFile "../assets/player-piece-white.png"
-  piecePb <- pixbufNewFromFile "../assets/player-piece-black.png"
-  pb <- pixbufNewFromFile "../assets/woodciircle.1.png"
+  tile <- pixbufNewFromFile "../assets/brow-tile.png"
+  piecePb <- pixbufNewFromFile "../assets/black-piece.png"
+  pb <- pixbufNewFromFile "../assets/board-background.png"
 
   let game = Game visualAspects defaultCheckersGame
       visualAspects =

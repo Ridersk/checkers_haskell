@@ -1,7 +1,7 @@
 cabal-version:       >= 1.10
 build-type:          Simple
 
-name:                Ridersk
+name:                checkers
 version:             0.1.0
 author:              Ridersk
 maintainer:          Ridersk

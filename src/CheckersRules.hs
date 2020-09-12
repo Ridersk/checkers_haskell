@@ -29,11 +29,8 @@ defaultCheckersGame =
         boardPieces' = pieces
       }
   where
-    allTiles = [(x, y, Tile) | x <- [0 .. 6] :: [Int], y <- [0 .. 6] :: [Int]]
-    inCorner x y =
-      ((x > 4 || x < 2) && (y == 0 || y == 6))
-        || ((y > 4 || y < 2) && (x == 0 || x == 6))
-    pieces = [(x, y, Player, Piece) | (x, y, _) <- allTiles, (x /= 3 || y /= 3)]
+    allTiles = [(x, y, Tile) | x <- [0 .. 7] :: [Int], y <- [0 .. 7] :: [Int], (x + y) `mod` 2 == 0]
+    pieces = [(x, y, Player, Piece) | (x, y, _) <- allTiles]
 
 instance PlayableGame CheckersGame Int Tile Player Piece where
   -- "Static" game view

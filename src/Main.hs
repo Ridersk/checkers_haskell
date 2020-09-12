@@ -14,7 +14,7 @@ main = do
 
   -- Create interface
   window <- windowNew
-  bgBin <- backgroundContainerNewWithPicture "../assets/Free-Background-3.jpg"
+  bgBin <- backgroundContainerNewWithPicture "../assets/table-background.jpg"
   align <- alignmentNew 0.5 0.5 0 0
 
   -- Create game and board
@@ -27,7 +27,7 @@ main = do
   containerAdd window bgBin
 
   -- Set window size
-  widgetSetSizeRequest window 400 300
+  widgetSetSizeRequest window 800 600
 
   -- Close progrtam if window is closed
   _ <- window `on` deleteEvent $ liftIO mainQuit >> return False
