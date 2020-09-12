@@ -1,49 +1,63 @@
-# RepositorioTemplate
-Esse repositório é para ser utilizado pelos grupos como um template inicial, da home page do Projeto.
-**!! Atenção: Renomeie o seu repositório para (Ano.Semestre)_(Grupo)_(Paradigma)_(NomeDoProjeto). !!** 
+# Jogo de Damas
 
-Paradigmas:
- - Funcional
- - Logico
- - Concorrente
- - SMA
-
-**!! *Não coloque os nomes dos alunos no título do repositório*. Exemplo de título correto: 2020.1_G1_Logico_ProjetoRoteirosAereos!!**
- 
- (Apague essa seção)
-
-# NomeDoProjeto
-
-**Disciplina**: FGA0210 - PARADIGMAS DE PROGRAMAÇÃO - T01 <br>
-**Nro do Grupo**: XX<br>
-**Paradigma**: XXXXXXXXXX<br>
+**Disciplina**: FGA0210 - PARADIGMAS DE PROGRAMAÇÃO - T01  
+**Nro do Grupo**: 01  
+**Paradigma**: Funcional  
 
 ## Alunos
+
 |Matrícula | Aluno |
 | -- | -- |
-| xx/xxxxxx  |  xxxx xxxx xxxxx |
-| xx/xxxxxx  |  xxxx xxxx xxxxx |
+| 15/0064535 | Rodrigo Dadamos |
+| 15/0128312 | Guilherme Lima Matos Leal |
+| 16/0013321 | Luciano dos Santos Silva |
+| 17/0070735 | Lucas Maciel Aguiar |
 
-## Sobre 
-Descreva o seu projeto em linhas gerais. 
+## Sobre  
+
+Jogo de Tabuleiro Simples
 
 ## Screenshots
+
 Adicione 2 ou mais screenshots do projeto em termos de interface e/ou funcionamento.
 
-## Instalação 
-**Linguagens**: xxxxxx<br>
-**Tecnologias**: xxxxxx<br>
-Descreva os pré-requisitos para rodar o seu projeto e os comandos necessários.
-Insira um manual ou um script para auxiliar ainda mais.
+## Instalação
 
-## Uso 
-Explique como usar seu projeto, caso haja algum passo a passo após o comando de execução.
+**Linguagens**: Haskell
+**Tecnologias**: Gtk2
 
-## Vídeo
+## Uso  
+
+* Instalar Dependências do Sistema
+
+      sudo apt install libgtk2.0-dev
+
+* Criar Sandbox - Cabal
+
+      cabal sandbox init
+
+* Instalar Dependências do Projeto
+
+      cabal install
+
+* Build do Projeto
+
+      cd src
+      cabal sandbox --sandbox=../.cabal-sandbox/ init
+      cabal exec -- ghc --make Main.hs
+
+* Execução
+
+      ./Main
+
+## Vídeo  
+
 Adicione 1 ou mais vídeos com a execução do projeto.
 
-## Outros 
+## Outros  
+
 Quaisquer outras informações sobre seu projeto podem ser descritas a seguir.
 
 ## Fontes
-Caso utilize materiais de terceiros, referencie-os adequadamente.
+
+* __Repositório com módulos úteis para construção de jogos de tabuleiro simples (Keera-studios):__ <https://github.com/keera-studios/gtk-helpers>
