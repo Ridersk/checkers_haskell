@@ -14,7 +14,7 @@ main = do
 
   -- Create interface
   window <- windowNew
-  bgBin <- backgroundContainerNewWithPicture "../assets/table-background.jpg"
+  bgBin <- backgroundContainerNewWithPicture "assets/table-background.jpg"
   align <- alignmentNew 0.5 0.5 0 0
 
   -- Create game and board

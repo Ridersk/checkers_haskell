@@ -32,23 +32,14 @@ Adicione 2 ou mais screenshots do projeto em termos de interface e/ou funcioname
 
       sudo apt install libgtk2.0-dev
 
-* Criar Sandbox - Cabal
-
-      cabal sandbox init
-
-* Instalar Dependências do Projeto
-
-      cabal install
-
 * Build do Projeto
 
-      cd src
-      cabal sandbox --sandbox=../.cabal-sandbox/ init
-      cabal exec -- ghc --make Main.hs
+      cabal configure
+      cabal build
 
-* Execução
+* Rodar jogo
 
-      ./Main
+      cabal run
 
 ## Vídeo  
 

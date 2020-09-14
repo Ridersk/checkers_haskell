@@ -1,6 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 
-module CheckersRules
+module Checkers
   ( Piece,
     Tile,
     Player,
@@ -10,6 +10,12 @@ module CheckersRules
 where
 
 import Game.Board.BasicTurnGame
+  ( GameChange (AddPiece, MovePiece, RemovePiece),
+    GameState (..),
+    PlayableGame (..),
+    getPieceAt,
+    hasPiece,
+  )
 
 data Piece = Piece
 
