@@ -36,7 +36,7 @@ defaultCheckersGame =
       }
   where
     allTiles = [(x, y, Tile) | x <- [0 .. 7] :: [Int], y <- [0 .. 7] :: [Int], (x + y) `mod` 2 == 0]
-    pieces = [(x, y, Player, Piece) | (x, y, _) <- allTiles]
+    pieces = [(x, y, Player, Piece) | (x, y, _) <- allTiles, y > 4]
 
 instance PlayableGame CheckersGame Int Tile Player Piece where
   -- "Static" game view
@@ -51,14 +51,18 @@ instance PlayableGame CheckersGame Int Tile Player Piece where
 
   -- Convert a "move" to a sequence of changes
   move (CheckersGame game) _player posOrig posDest
-    | hasPiece game posOrig && hasPiece game posIntermed && not (hasPiece game posDest) && correctDiff =
+    | hasPiece game posOrig && not (hasPiece game posDest) && correctDiffMove =
+      [MovePiece posOrig posDest]
+    | hasPiece game posOrig && hasPiece game posIntermed && not (hasPiece game posDest) && correctDiffCapture =
       [MovePiece posOrig posDest, RemovePiece posIntermed]
     | otherwise =
       []
     where
-      diffX = abs (fst posOrig - fst posDest)
-      diffY = abs (snd posOrig - snd posDest)
-      correctDiff = (diffX == 0 && diffY == 2) || (diffX == 2 && diffY == 0)
+      diffY = snd posOrig - snd posDest
+      diffXAbs = abs (fst posOrig - fst posDest)
+      diffYAbs = abs (snd posOrig - snd posDest)
+      correctDiffMove = diffY == 1
+      correctDiffCapture = (diffXAbs == 2 && diffYAbs == 2)
       posIntermed = ((fst posOrig + fst posDest) `div` 2, (snd posOrig + snd posDest) `div` 2)
 
   -- Apply a change to the game
