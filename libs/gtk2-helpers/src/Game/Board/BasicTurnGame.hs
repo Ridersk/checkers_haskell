@@ -20,7 +20,7 @@ data GameChange index player piece
   = AddPiece (index, index) player piece
   | RemovePiece (index, index) player
   | MovePiece (index, index) (index, index) player
-  | FinishMove player
+  | FinishMove (index, index) (index, index) player
 
 -- FIXME: Wrong data structure => use unmutable matrices
 hasPiece :: Ix index => GameState index tile player piece -> (index, index) -> Bool

@@ -53,19 +53,19 @@ instance PlayableGame CheckersGame Int Tile Player Piece where
 
   -- Kind of moves that are allowed
   moveEnabled _ = True
-  canMove (CheckersGame game) player pos = player == getPlayerFromPiece (getPieceAt game pos)
-    where
-      getPlayerFromPiece :: Maybe (player, piece) -> player
-      getPlayerFromPiece (Just (player, piece)) = player
+  canMove (CheckersGame game) player pos
+    | Just (playerPiece, piece) <- (getPieceAt game pos) =
+      player == playerPiece
+    | otherwise = False
 
   canMoveTo _ _ _ _ = True
 
   -- Convert a "move" to a sequence of changes
   move (CheckersGame game) _player posOrig posDest
     | hasPiece game posOrig && not (hasPiece game posDest) && correctDiffMove =
-      [MovePiece posOrig posDest _player]
-    | hasPiece game posOrig && hasPiece game posIntermed && not (hasPiece game posDest) && correctDiffCapture =
-      [MovePiece posOrig posDest _player, RemovePiece posIntermed _player]
+      [MovePiece posOrig posDest _player, FinishMove posOrig posDest _player]
+    | hasPiece game posOrig && isPieceOtherPlayer && not (hasPiece game posDest) && correctDiffCapture =
+      [MovePiece posOrig posDest _player, RemovePiece posIntermed _player, FinishMove posOrig posDest _player]
     | otherwise =
       []
     where
@@ -78,6 +78,9 @@ instance PlayableGame CheckersGame Int Tile Player Piece where
       correctDiffCapture = (diffXAbs == 2 && diffYAbs == 2)
       posIntermed = ((fst posOrig + fst posDest) `div` 2, (snd posOrig + snd posDest) `div` 2)
       isPlayer1 = curPlayer' game == Player1
+      isPieceOtherPlayer = not (getPlayerFromPiece (getPieceAt game posIntermed) == _player)
+      getPlayerFromPiece :: Maybe (player, piece) -> player
+      getPlayerFromPiece (Just (player, piece)) = player
 
   -- Apply a change to the game
   applyChange psg@(CheckersGame game) (MovePiece posOrig posDest player)
@@ -98,5 +101,7 @@ instance PlayableGame CheckersGame Int Tile Player Piece where
               ]
           }
       )
-  applyChange (CheckersGame game) (FinishMove player) =
-    CheckersGame (game {curPlayer' = Player1})
+  applyChange (CheckersGame game) (FinishMove _ _ player)
+    | player == Player1 =
+      CheckersGame (game {curPlayer' = Player2})
+    | otherwise = CheckersGame (game {curPlayer' = Player1})

@@ -183,7 +183,7 @@ boardRefresh board = do
     drawPixmaps dw (tileSize board) (boardTiles board) (tilePixmaps board)
 
     -- Draw Pieces
-    piecesBoardPlayerA <-
+    piecesBoard <-
       if isJust posM && isJust mpOrig && isJust mpPos
         then do
           pieces' <- (gameBoardClone $ boardPieces board)
@@ -192,7 +192,7 @@ boardRefresh board = do
         else return $ boardPieces board
 
     -- drawPixmaps dw (tileSize board) (boardPieces board) (piecePixmaps board)
-    drawPixmaps dw (tileSize board) piecesBoardPlayerA (pieceAPixmaps board)
+    drawPixmaps dw (tileSize board) piecesBoard (pieceAPixmaps board)
 
     -- Draw moving piece PA
     when (isJust posM && isJust mpOrig && isJust mpPos) $ do

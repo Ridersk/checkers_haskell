@@ -58,6 +58,8 @@ applyBoardChange board (RemovePiece pos player) =
   boardRemovePiece pos board (boardPieces board)
 applyBoardChange board (MovePiece posO posD player) =
   boardMovePiece posO posD board (boardPieces board)
+applyBoardChange board (FinishMove posO posD player) =
+  boardMovePiece posO posD board (boardPieces board)
 
 data VisualGameAspects index tile player piece = VisualGameAspects
   { tileF :: PixmapsFor tile,
