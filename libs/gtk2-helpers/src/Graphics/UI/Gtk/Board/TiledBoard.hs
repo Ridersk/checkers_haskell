@@ -14,8 +14,7 @@ import System.Glib.Types
 data Board index tile piece = Board
   { boardDrawingArea :: DrawingArea,
     boardTiles :: GameBoard index tile,
-    boardPiecesPA :: GameBoard index piece,
-    boardPiecesPB :: GameBoard index piece,
+    boardPieces :: GameBoard index piece,
     tilePixmaps :: PixmapsFor tile,
     pieceAPixmaps :: PixmapsFor piece,
     pieceBPixmaps :: PixmapsFor piece,
@@ -44,7 +43,7 @@ instance ObjectClass (Board index tile piece)
 
 instance GObjectClass (Board index tile piece) where
   toGObject = toGObject . boardDrawingArea
-  unsafeCastGObject x = Board (unsafeCastGObject x) undefined undefined undefined undefined undefined undefined undefined undefined undefined undefined undefined undefined undefined undefined undefined
+  unsafeCastGObject x = Board (unsafeCastGObject x) undefined undefined undefined undefined undefined undefined undefined undefined undefined undefined undefined undefined undefined undefined
 
 type PixmapsFor a = a -> Pixbuf
 
@@ -61,8 +60,7 @@ boardNew tileList tilePixs pieceAPixs pieceBPixs = do
   da <- drawingAreaNew
 
   tb <- gameBoardNew tileList
-  piecesPA <- gameBoardNewEmpty (map (\(x, y, _) -> (x, y)) tileList)
-  piecesPB <- gameBoardNewEmpty (map (\(x, y, _) -> (x, y)) tileList)
+  piecesPb <- gameBoardNewEmpty (map (\(x, y, _) -> (x, y)) tileList)
 
   ts <- getTileSize tileList tilePixs
 
@@ -81,8 +79,7 @@ boardNew tileList tilePixs pieceAPixs pieceBPixs = do
         Board
           da
           tb
-          piecesPA
-          piecesPB
+          piecesPb
           tilePixs
           pieceAPixs
           pieceBPixs
@@ -185,43 +182,23 @@ boardRefresh board = do
     -- Draw tiles
     drawPixmaps dw (tileSize board) (boardTiles board) (tilePixmaps board)
 
-    -- Draw Pieces PA
+    -- Draw Pieces
     piecesBoardPlayerA <-
       if isJust posM && isJust mpOrig && isJust mpPos
         then do
-          pieces' <- (gameBoardClone $ boardPiecesPA board)
+          pieces' <- (gameBoardClone $ boardPieces board)
           gameBoardRemovePiece (fromJust posM) pieces'
           return pieces'
-        else return $ boardPiecesPA board
-
-    -- Draw Pieces PB
-    piecesBoardPlayerB <-
-      if isJust posM && isJust mpOrig && isJust mpPos
-        then do
-          pieces' <- (gameBoardClone $ boardPiecesPB board)
-          gameBoardRemovePiece (fromJust posM) pieces'
-          return pieces'
-        else return $ boardPiecesPB board
+        else return $ boardPieces board
 
     -- drawPixmaps dw (tileSize board) (boardPieces board) (piecePixmaps board)
     drawPixmaps dw (tileSize board) piecesBoardPlayerA (pieceAPixmaps board)
-    drawPixmaps dw (tileSize board) piecesBoardPlayerB (pieceBPixmaps board)
 
     -- Draw moving piece PA
     when (isJust posM && isJust mpOrig && isJust mpPos) $ do
-      pieceM <- boardGetPiece (fromJust posM) (boardPiecesPA board)
+      pieceM <- boardGetPiece (fromJust posM) (boardPieces board)
       when (isJust pieceM) $ do
         let pb = pieceAPixmaps board (fromJust pieceM)
-        let (mpPosX, mpPosY) = fromJust mpPos
-            (mpOrigX, mpOrigY) = fromJust mpOrig
-            (x, y) = (mpPosX - mpOrigX, mpPosY - mpOrigY)
-        drawPixbuf dw gc pb 0 0 x y (-1) (-1) RgbDitherNone (-1) (-1)
-
-    -- Draw moving piece PB
-    when (isJust posM && isJust mpOrig && isJust mpPos) $ do
-      pieceM <- boardGetPiece (fromJust posM) (boardPiecesPB board)
-      when (isJust pieceM) $ do
-        let pb = pieceBPixmaps board (fromJust pieceM)
         let (mpPosX, mpPosY) = fromJust mpPos
             (mpOrigX, mpOrigY) = fromJust mpOrig
             (x, y) = (mpPosX - mpOrigX, mpPosY - mpOrigY)
@@ -308,8 +285,7 @@ boardFoldM boardPieces f def = gameBoardFoldM boardPieces f def
 
 boardClear :: Ix index => Board index tile piece -> IO ()
 boardClear board = do
-  gameBoardClear (boardPiecesPA board)
-  gameBoardClear (boardPiecesPB board)
+  gameBoardClear (boardPieces board)
   boardInvalidate board
 
 boardOnClick :: Ix index => Board index tile piece -> ((index, index) -> IO ()) -> IO ()
@@ -426,25 +402,3 @@ relativePos board (ix, iy) (x, y) = (x', y')
 
 returning :: Monad m => a -> m b -> m a
 returning v f = f >> return v
-
--- boardLiveMove :: Ix index => (index, index) -> (index, index) -> Board index tile piece -> IO ()
--- boardLiveMove posO posD board = do
---   evs <- widgetGetEvents board
---
---   let evs' = undefined
---
---   movingParams <- undefined
---
---   let timeDelay = undefined
---
---   writeIORef (movingStatus board) (Just movingParams)
---
---   -- Set delay and time handler
---   timeoutAdd (do undefined -- advance moving one step
---                  boardInvalidate board
---                  -- return True if not the end, otherwise return False
---              )
---              timeDelay
---
---      -- Time Handler includes resetting the event handers
---   return ()

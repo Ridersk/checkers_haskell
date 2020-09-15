@@ -9,6 +9,7 @@ module Checkers
   )
 where
 
+import Data.Maybe
 import Game.Board.BasicTurnGame
   ( GameChange (AddPiece, FinishMove, MovePiece, RemovePiece),
     GameState (..),
@@ -16,8 +17,6 @@ import Game.Board.BasicTurnGame
     Player (..),
     getPieceAt,
     hasPiece,
-    player1Id,
-    player2Id,
   )
 
 data Piece = Piece1 | Piece2
@@ -39,8 +38,7 @@ defaultCheckersGame =
     GameState
       { curPlayer' = Player1,
         boardPos = allTiles,
-        piecesPlayerA = piecesPA,
-        piecesPlayerB = piecesPB
+        pieces = piecesPA ++ piecesPB
       }
   where
     allTiles = [(x, y, Tile) | x <- [0 .. boardSize - 1] :: [Int], y <- [0 .. boardSize - 1] :: [Int], (x + y) `mod` 2 == 0]
@@ -50,13 +48,16 @@ defaultCheckersGame =
 instance PlayableGame CheckersGame Int Tile Player Piece where
   -- "Static" game view
   curPlayer (CheckersGame game) = curPlayer' game
-  allPiecesPA (CheckersGame game) = piecesPlayerA game
-  allPiecesPB (CheckersGame game) = piecesPlayerB game
+  allPieces (CheckersGame game) = pieces game
   allPos (CheckersGame game) = boardPos game
 
   -- Kind of moves that are allowed
   moveEnabled _ = True
-  canMove (CheckersGame game) player _ = player == curPlayer' game
+  canMove (CheckersGame game) player pos = player == getPlayerFromPiece (getPieceAt game pos)
+    where
+      getPlayerFromPiece :: Maybe (player, piece) -> player
+      getPlayerFromPiece (Just (player, piece)) = player
+
   canMoveTo _ _ _ _ = True
 
   -- Convert a "move" to a sequence of changes
@@ -85,22 +86,17 @@ instance PlayableGame CheckersGame Int Tile Player Piece where
     | otherwise =
       psg
   applyChange (CheckersGame game) (AddPiece (x, y) player piece) =
-    CheckersGame (game {piecesPlayerA = (x, y, player, piece) : piecesPlayerA game, piecesPlayerB = (x, y, player, piece) : piecesPlayerB game})
+    CheckersGame (game {pieces = (x, y, player, piece) : pieces game})
   -- Filter Removed Piece
   applyChange (CheckersGame game) (RemovePiece (x, y) player) =
     CheckersGame
       ( game
-          { piecesPlayerA =
+          { pieces =
               [ (x', y', player, piece)
-                | (x', y', player, piece) <- piecesPlayerA game,
-                  (x /= x' || y /= y')
-              ],
-            piecesPlayerB =
-              [ (x', y', player, piece)
-                | (x', y', player, piece) <- piecesPlayerB game,
+                | (x', y', player, piece) <- pieces game,
                   (x /= x' || y /= y')
               ]
           }
       )
   applyChange (CheckersGame game) (FinishMove player) =
-    CheckersGame (game {curPlayer' = Player2})
+    CheckersGame (game {curPlayer' = Player1})
