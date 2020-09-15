@@ -8,37 +8,49 @@ module Game.Board.BasicTurnGame
     PlayableGame (..),
     hasPiece,
     getPieceAt,
+    player1Id,
+    player2Id,
   )
 where
 
 import Data.Ix
 import Data.Maybe
 
+player1Id :: Int
+player1Id = 0
+
+player2Id :: Int
+player2Id = 1
+
 data Player = Player1 | Player2 deriving (Eq)
 
 data GameChange index player piece
   = AddPiece (index, index) player piece
   | RemovePiece (index, index) player
+  | RemovePieceOtherPlayer (index, index) player
   | MovePiece (index, index) (index, index) player
   | FinishMove (index, index) (index, index) player
 
 -- FIXME: Wrong data structure => use unmutable matrices
-hasPiece :: Ix index => GameState index tile player piece -> (index, index) -> Bool
-hasPiece game ix = isJust (getPieceAt game ix)
+hasPiece :: Ix index => GameState index tile player piece -> [(index, index, player, piece)] -> (index, index) -> Bool
+hasPiece game pieces ix = isJust (getPieceAt game pieces ix)
 
-getPieceAt :: Ix index => GameState index tile player piece -> (index, index) -> Maybe (player, piece)
-getPieceAt game (posX, posY) =
-  listToMaybe [(player, piece) | (x, y, player, piece) <- pieces game, x == posX, y == posY]
+getPieceAt :: Ix index => GameState index tile player piece -> [(index, index, player, piece)] -> (index, index) -> Maybe (player, piece)
+getPieceAt game pieces (posX, posY) =
+  listToMaybe [(player, piece) | (x, y, player, piece) <- pieces, x == posX, y == posY]
 
 data GameState index tile player piece = GameState
   { curPlayer' :: player,
     boardPos :: [(index, index, tile)],
-    pieces :: [(index, index, player, piece)]
+    piecesP1 :: [(index, index, player, piece)],
+    piecesP2 :: [(index, index, player, piece)]
   }
 
 class PlayableGame a index tile player piece | a -> index, a -> tile, a -> player, a -> piece where
   curPlayer :: a -> player
-  allPieces :: a -> [(index, index, player, piece)]
+  curPlayerId :: a -> Int
+  allPiecesP1 :: a -> [(index, index, player, piece)]
+  allPiecesP2 :: a -> [(index, index, player, piece)]
   allPos :: a -> [(index, index, tile)]
 
   moveEnabled :: a -> Bool

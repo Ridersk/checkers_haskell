@@ -14,7 +14,8 @@ import System.Glib.Types
 data Board index tile piece = Board
   { boardDrawingArea :: DrawingArea,
     boardTiles :: GameBoard index tile,
-    boardPieces :: GameBoard index piece,
+    boardPiecesP1 :: GameBoard index piece,
+    boardPiecesP2 :: GameBoard index piece,
     tilePixmaps :: PixmapsFor tile,
     pieceAPixmaps :: PixmapsFor piece,
     pieceBPixmaps :: PixmapsFor piece,
@@ -43,7 +44,7 @@ instance ObjectClass (Board index tile piece)
 
 instance GObjectClass (Board index tile piece) where
   toGObject = toGObject . boardDrawingArea
-  unsafeCastGObject x = Board (unsafeCastGObject x) undefined undefined undefined undefined undefined undefined undefined undefined undefined undefined undefined undefined undefined undefined
+  unsafeCastGObject x = Board (unsafeCastGObject x) undefined undefined undefined undefined undefined undefined undefined undefined undefined undefined undefined undefined undefined undefined undefined
 
 type PixmapsFor a = a -> Pixbuf
 
@@ -60,7 +61,8 @@ boardNew tileList tilePixs pieceAPixs pieceBPixs = do
   da <- drawingAreaNew
 
   tb <- gameBoardNew tileList
-  piecesPb <- gameBoardNewEmpty (map (\(x, y, _) -> (x, y)) tileList)
+  piecesP1 <- gameBoardNewEmpty (map (\(x, y, _) -> (x, y)) tileList)
+  piecesP2 <- gameBoardNewEmpty (map (\(x, y, _) -> (x, y)) tileList)
 
   ts <- getTileSize tileList tilePixs
 
@@ -79,7 +81,8 @@ boardNew tileList tilePixs pieceAPixs pieceBPixs = do
         Board
           da
           tb
-          piecesPb
+          piecesP1
+          piecesP2
           tilePixs
           pieceAPixs
           pieceBPixs
@@ -182,23 +185,43 @@ boardRefresh board = do
     -- Draw tiles
     drawPixmaps dw (tileSize board) (boardTiles board) (tilePixmaps board)
 
-    -- Draw Pieces
-    piecesBoard <-
+    -- Draw Pieces P1
+    piecesBoardP1 <-
       if isJust posM && isJust mpOrig && isJust mpPos
         then do
-          pieces' <- (gameBoardClone $ boardPieces board)
+          pieces' <- (gameBoardClone $ boardPiecesP1 board)
           gameBoardRemovePiece (fromJust posM) pieces'
           return pieces'
-        else return $ boardPieces board
+        else return $ boardPiecesP1 board
+
+    -- Draw Pieces P2
+    piecesBoardP2 <-
+      if isJust posM && isJust mpOrig && isJust mpPos
+        then do
+          pieces' <- (gameBoardClone $ boardPiecesP2 board)
+          gameBoardRemovePiece (fromJust posM) pieces'
+          return pieces'
+        else return $ boardPiecesP2 board
 
     -- drawPixmaps dw (tileSize board) (boardPieces board) (piecePixmaps board)
-    drawPixmaps dw (tileSize board) piecesBoard (pieceAPixmaps board)
+    drawPixmaps dw (tileSize board) piecesBoardP1 (pieceAPixmaps board)
+    drawPixmaps dw (tileSize board) piecesBoardP2 (pieceBPixmaps board)
 
-    -- Draw moving piece PA
+    -- Draw moving piece P1
     when (isJust posM && isJust mpOrig && isJust mpPos) $ do
-      pieceM <- boardGetPiece (fromJust posM) (boardPieces board)
+      pieceM <- boardGetPiece (fromJust posM) (boardPiecesP1 board)
       when (isJust pieceM) $ do
         let pb = pieceAPixmaps board (fromJust pieceM)
+        let (mpPosX, mpPosY) = fromJust mpPos
+            (mpOrigX, mpOrigY) = fromJust mpOrig
+            (x, y) = (mpPosX - mpOrigX, mpPosY - mpOrigY)
+        drawPixbuf dw gc pb 0 0 x y (-1) (-1) RgbDitherNone (-1) (-1)
+
+    -- Draw moving piece P2
+    when (isJust posM && isJust mpOrig && isJust mpPos) $ do
+      pieceM <- boardGetPiece (fromJust posM) (boardPiecesP2 board)
+      when (isJust pieceM) $ do
+        let pb = pieceBPixmaps board (fromJust pieceM)
         let (mpPosX, mpPosY) = fromJust mpPos
             (mpOrigX, mpOrigY) = fromJust mpOrig
             (x, y) = (mpPosX - mpOrigX, mpPosY - mpOrigY)
@@ -285,7 +308,7 @@ boardFoldM boardPieces f def = gameBoardFoldM boardPieces f def
 
 boardClear :: Ix index => Board index tile piece -> IO ()
 boardClear board = do
-  gameBoardClear (boardPieces board)
+  gameBoardClear (boardPiecesP1 board)
   boardInvalidate board
 
 boardOnClick :: Ix index => Board index tile piece -> ((index, index) -> IO ()) -> IO ()
