@@ -3,6 +3,8 @@
 
 module Game.Board.BasicTurnGame
   ( Player (..),
+    Piece (..),
+    Tile (..),
     GameChange (..),
     GameState (..),
     PlayableGame (..),
@@ -13,8 +15,8 @@ module Game.Board.BasicTurnGame
   )
 where
 
-import Data.Ix
-import Data.Maybe
+import Data.Ix (Ix)
+import Data.Maybe (isJust, listToMaybe)
 
 player1Id :: Int
 player1Id = 0
@@ -23,6 +25,10 @@ player2Id :: Int
 player2Id = 1
 
 data Player = Player1 | Player2 deriving (Eq)
+
+data Piece = Piece1 | Piece2 deriving (Eq)
+
+data Tile = Tile deriving (Eq)
 
 data GameChange index player piece
   = AddPiece (index, index) player piece

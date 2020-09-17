@@ -9,26 +9,27 @@ module Checkers
   )
 where
 
-import Data.Maybe
+import Data.Maybe ()
 import Game.Board.BasicTurnGame
   ( GameChange (AddPiece, FinishMove, MovePiece, RemovePiece, RemovePieceOtherPlayer),
     GameState (..),
+    Piece (..),
     PlayableGame (..),
     Player (..),
+    Tile (..),
     getPieceAt,
     hasPiece,
     player1Id,
     player2Id,
   )
 
-data Piece = Piece1 | Piece2
-
-data Tile = Tile
-
+boardSize :: Int
 boardSize = 8
 
+piecesPlayerAStart :: Int
 piecesPlayerAStart = 5
 
+piecesPlayerBEnd :: Int
 piecesPlayerBEnd = 2
 
 newtype CheckersGame = CheckersGame (GameState Int Tile Player Piece)
