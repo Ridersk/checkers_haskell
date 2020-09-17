@@ -3,35 +3,48 @@
 
 import Control.Monad.Trans (liftIO)
 import Graphics.UI.Gtk
-import Graphics.UI.Gtk.Board.BoardLink
+  ( alignmentNew,
+    containerAdd,
+    deleteEvent,
+    initGUI,
+    mainGUI,
+    mainQuit,
+    on,
+    widgetSetSizeRequest,
+    widgetShowAll,
+    windowNew,
+  )
+import Graphics.UI.Gtk.Board.BoardLink (attachGameRules)
 import Graphics.UI.Gtk.Layout.BackgroundContainer
-import GtkCheckers
+  ( backgroundContainerNewWithPicture,
+  )
+import GtkCheckers (gtkGame)
 
 main :: IO ()
 main = do
-  -- Initialize Gtk
+  -- Inicializa o GTK
   _ <- initGUI
 
-  -- Create interface
+  -- Cria Interface
   window <- windowNew
-  bgBin <- backgroundContainerNewWithPicture "assets/table-background.jpg"
+  background <- backgroundContainerNewWithPicture "assets/table-background.jpg"
   align <- alignmentNew 0.5 0.5 0 0
 
-  -- Create game and board
+  -- Cria Tabuleiro
   game <- gtkGame
   board <- attachGameRules game
 
-  -- Add hierarchy of widgets to window
+  -- Adiciona hierarquia de Widgets
   containerAdd align board
-  containerAdd bgBin align
-  containerAdd window bgBin
+  containerAdd background align
+  containerAdd window background
 
-  -- Set window size
+  -- Tamanho da Janela
   widgetSetSizeRequest window 800 600
 
-  -- Close progrtam if window is closed
+  -- Fecha programa se a janela eh fechada
   _ <- window `on` deleteEvent $ liftIO mainQuit >> return False
 
-  -- Launch program with the main window
+  -- Inicializa programa na Janela Principal
   widgetShowAll window
   mainGUI

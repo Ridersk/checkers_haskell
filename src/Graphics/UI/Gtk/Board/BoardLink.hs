@@ -48,28 +48,41 @@ attachGameRules game = do
         moves = move game' (curPlayer game') posF posT
         game'' = foldl applyChange game' moves
     writeIORef vgRef (visualGame {gameS = game''})
-    forM_ moves (applyBoardChange (curPlayerId game') board)
+    forM_ moves (applyBoardChange game' board)
 
   when (moveEnabled (gameS game)) $ boardEnableDrag board
 
   return board
 
-applyBoardChange :: Ix index => Int -> Board index tile (player, piece) -> GameChange index player piece -> IO ()
-applyBoardChange currentPlayer board (AddPiece pos player piece)
-  | currentPlayer == player1Id = boardSetPiece pos (player, piece) board (boardPiecesP1 board)
-  | otherwise = boardSetPiece pos (player, piece) board (boardPiecesP2 board)
-applyBoardChange curPlayerId board (RemovePiece pos player)
-  | curPlayerId == player1Id = boardRemovePiece pos board (boardPiecesP1 board)
-  | otherwise = boardRemovePiece pos board (boardPiecesP2 board)
-applyBoardChange curPlayerId board (RemovePieceOtherPlayer pos player)
-  | curPlayerId == player1Id = boardRemovePiece pos board (boardPiecesP2 board)
-  | otherwise = boardRemovePiece pos board (boardPiecesP1 board)
-applyBoardChange curPlayerId board (MovePiece posO posD player)
-  | curPlayerId == player1Id = boardMovePiece posO posD board (boardPiecesP1 board)
-  | otherwise = boardMovePiece posO posD board (boardPiecesP2 board)
-applyBoardChange curPlayerId board (FinishMove posO posD player)
-  | curPlayerId == player1Id = boardMovePiece posO posD board (boardPiecesP1 board)
-  | otherwise = boardMovePiece posO posD board (boardPiecesP2 board)
+applyBoardChange ::
+  (PlayableGame pg index tile player piece, Ix index) =>
+  pg ->
+  Board index tile (player, piece) ->
+  GameChange index player piece ->
+  IO ()
+applyBoardChange game board (AddPiece pos player piece) = boardSetPiece pos (player, piece) board (boardPiecesCurrentPlayer game board)
+applyBoardChange game board (RemovePiece pos player) = boardRemovePiece pos board (boardPiecesCurrentPlayer game board)
+applyBoardChange game board (RemovePieceOtherPlayer pos player) = boardRemovePiece pos board (boardPiecesOtherPlayer game board)
+applyBoardChange game board (MovePiece posO posD player) = boardMovePiece posO posD board (boardPiecesCurrentPlayer game board)
+applyBoardChange game board (FinishMove posO posD player) = return ()
+
+boardPiecesCurrentPlayer ::
+  PlayableGame pg index tile player piece =>
+  pg ->
+  Board index tile (player, piece) ->
+  GameBoard index (player, piece)
+boardPiecesCurrentPlayer game board
+  | (curPlayerId game) == player1Id = (boardPiecesP1 board)
+  | otherwise = (boardPiecesP2 board)
+
+boardPiecesOtherPlayer ::
+  PlayableGame pg index tile player piece =>
+  pg ->
+  Board index tile (player, piece) ->
+  GameBoard index (player, piece)
+boardPiecesOtherPlayer game board
+  | (curPlayerId game) == player1Id = (boardPiecesP2 board)
+  | otherwise = (boardPiecesP1 board)
 
 data VisualGameAspects index tile player piece = VisualGameAspects
   { tileF :: PixmapsFor tile,
