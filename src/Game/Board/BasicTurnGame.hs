@@ -30,12 +30,15 @@ data Piece = Piece1 | Piece2 deriving (Eq)
 
 data Tile = Tile deriving (Eq)
 
+-- Mudancas de Estado do jogo
+-- Obs: O booleano diz se a mudanca de estado estah na lista de pecas normais ou damas
 data GameChange index player piece
-  = AddPiece (index, index) player piece
-  | RemovePiece (index, index) player
-  | RemovePieceOtherPlayer (index, index) player
-  | MovePiece (index, index) (index, index) player
-  | FinishMove (index, index) (index, index) player
+  = AddPiece (index, index) player piece Bool
+  | RemovePiece (index, index) Bool
+  | RemovePieceOtherPlayer (index, index) Bool
+  | MovePiece (index, index) (index, index) Bool
+  | TurnPieceQueen (index, index)
+  | FinishMove player
 
 -- FIXME: Wrong data structure => use unmutable matrices
 hasPiece :: Ix index => GameState index tile player piece -> [(index, index, player, piece)] -> (index, index) -> Bool

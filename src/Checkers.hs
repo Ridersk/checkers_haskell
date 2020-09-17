@@ -11,7 +11,7 @@ where
 
 import Data.Maybe ()
 import Game.Board.BasicTurnGame
-  ( GameChange (AddPiece, FinishMove, MovePiece, RemovePiece, RemovePieceOtherPlayer),
+  ( GameChange (AddPiece, FinishMove, MovePiece, RemovePiece, RemovePieceOtherPlayer, TurnPieceQueen),
     GameState (..),
     Piece (..),
     PlayableGame (..),
@@ -80,37 +80,62 @@ instance PlayableGame CheckersGame Int Tile Player Piece where
   canMoveTo _ _ _ _ = True
 
   -- Regras que definem os movimentos permitidos
-  move (CheckersGame game) _player posOrig posDest
-    | hasPiece game (piecesCurrentPlayer game) posOrig && not (hasPiece game (piecesCurrentPlayer game) posDest) && correctDiffMove =
-      [MovePiece posOrig posDest _player, FinishMove posOrig posDest _player]
-    | hasPiece game (piecesCurrentPlayer game) posOrig && hasPieceIntermedOtherPlayer && not (hasPiece game (piecesCurrentPlayer game) posDest) && correctDiffCapture =
-      [MovePiece posOrig posDest _player, RemovePieceOtherPlayer posIntermed _player, FinishMove posOrig posDest _player]
+  move (CheckersGame game) _player posOrig (xDest, yDest)
+    | not becomeQueen && isNormalMove =
+      [ MovePiece posOrig (xDest, yDest) False,
+        FinishMove _player
+      ]
+    | becomeQueen && isNormalMove =
+      [ MovePiece posOrig (xDest, yDest) False,
+        TurnPieceQueen (xDest, yDest),
+        FinishMove _player
+      ]
+    | not becomeQueen && isCaptureMove =
+      [ MovePiece posOrig (xDest, yDest) False,
+        RemovePieceOtherPlayer posIntermed False,
+        FinishMove _player
+      ]
+    | becomeQueen && isCaptureMove =
+      [ MovePiece posOrig (xDest, yDest) False,
+        RemovePieceOtherPlayer posIntermed False,
+        TurnPieceQueen (xDest, yDest),
+        FinishMove _player
+      ]
     | otherwise =
       []
     where
-      diffY = snd posOrig - snd posDest
-      diffXAbs = abs (fst posOrig - fst posDest)
-      diffYAbs = abs (snd posOrig - snd posDest)
+      isNormalMove =
+        hasPiece game (piecesCurrentPlayer game) posOrig
+          && not (hasPiece game (piecesCurrentPlayer game) (xDest, yDest))
+          && correctDiffMove
+      isCaptureMove =
+        hasPiece game (piecesCurrentPlayer game) posOrig && hasPieceIntermedOtherPlayer
+          && not (hasPiece game (piecesCurrentPlayer game) (xDest, yDest))
+          && correctDiffCapture
+      becomeQueen = (_player == Player1 && yDest == 0) || (_player == Player2 && yDest == boardSize - 1)
+      diffY = snd posOrig - snd (xDest, yDest)
+      diffXAbs = abs (fst posOrig - fst (xDest, yDest))
+      diffYAbs = abs (snd posOrig - snd (xDest, yDest))
       correctDiffMove
         | isPlayer1 = diffY == 1
         | otherwise = diffY == -1
       correctDiffCapture = (diffXAbs == 2 && diffYAbs == 2)
-      posIntermed = ((fst posOrig + fst posDest) `div` 2, (snd posOrig + snd posDest) `div` 2)
+      posIntermed = ((fst posOrig + fst (xDest, yDest)) `div` 2, (snd posOrig + snd (xDest, yDest)) `div` 2)
       isPlayer1 = curPlayer' game == Player1
       hasPieceIntermedOtherPlayer = hasPiece game (piecesOtherPlayer game) posIntermed
 
-  -- Função que define as Mudanças no Tabuleiro
-  -- Em BoardLink.hs há uma função que observa essas mudanças e aplica elas a parte gráfica do tabuleiro
-  applyChange psg@(CheckersGame game) (MovePiece posOrig posDest player)
+  -- Funcao que define as Mudanças no Tabuleiro
+  -- Em BoardLink.hs ha uma funcao que observa essas mudanças e aplica elas a parte grafica do tabuleiro
+  applyChange psg@(CheckersGame game) (MovePiece posOrig posDest queen)
     | Just (player, piece) <- getPieceAt game (piecesCurrentPlayer game) posOrig =
-      applyChanges psg [RemovePiece posOrig player, RemovePiece posDest player, AddPiece posDest player piece]
+      applyChanges psg [RemovePiece posOrig False, RemovePiece posDest False, AddPiece posDest player piece False]
     | otherwise =
       psg
-  applyChange (CheckersGame game) (AddPiece (x, y) player piece)
+  applyChange (CheckersGame game) (AddPiece (x, y) player piece queen)
     | curPlayer' game == Player1 = CheckersGame (game {piecesP1 = (x, y, player, piece) : piecesP1 game})
     | otherwise = CheckersGame (game {piecesP2 = (x, y, player, piece) : piecesP2 game})
   -- Filtra a peca selecionada do jogador atual para remocao
-  applyChange (CheckersGame game) (RemovePiece (x, y) _) =
+  applyChange (CheckersGame game) (RemovePiece (x, y) queen) =
     CheckersGame
       ( game
           { piecesP1 =
@@ -126,7 +151,7 @@ instance PlayableGame CheckersGame Int Tile Player Piece where
           }
       )
   -- Filtra a peca selecionada do outro jogador atual para remocao
-  applyChange (CheckersGame game) (RemovePieceOtherPlayer (x, y) _) =
+  applyChange (CheckersGame game) (RemovePieceOtherPlayer (x, y) queen) =
     CheckersGame
       ( game
           { piecesP1 =
@@ -141,8 +166,13 @@ instance PlayableGame CheckersGame Int Tile Player Piece where
               ]
           }
       )
+  applyChange psg@(CheckersGame game) (TurnPieceQueen pos)
+    | Just (player, piece) <- getPieceAt game (piecesCurrentPlayer game) pos =
+      applyChanges psg [RemovePiece pos False, AddPiece pos player piece True]
+    | otherwise =
+      psg
   -- Funcao que troca o jogador atual
-  applyChange (CheckersGame game) (FinishMove _ _ player)
+  applyChange (CheckersGame game) (FinishMove player)
     | player == Player1 =
       CheckersGame (game {curPlayer' = Player2})
     | otherwise = CheckersGame (game {curPlayer' = Player1})

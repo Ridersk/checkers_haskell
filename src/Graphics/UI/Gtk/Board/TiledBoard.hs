@@ -2,23 +2,73 @@ module Graphics.UI.Gtk.Board.TiledBoard where
 
 import Control.Monad (void, when)
 import Control.Monad.Trans (liftIO)
-import Data.Array.IO
+import Data.Array.IO (Ix (..), MArray (getBounds))
 -- Local imports
 import Data.Board.GameBoardIO
-import Data.IORef
+  ( GameBoard (..),
+    gameBoardClear,
+    gameBoardClone,
+    gameBoardFoldM,
+    gameBoardGetBoundaries,
+    gameBoardGetPiece,
+    gameBoardMapM_,
+    gameBoardMovePiece,
+    gameBoardNew,
+    gameBoardNewEmpty,
+    gameBoardRemovePiece,
+    gameBoardSetPiece,
+  )
+import Data.IORef (IORef, newIORef, readIORef, writeIORef)
 import Data.Maybe (fromJust, isJust)
 import Graphics.UI.Gtk
-import Graphics.UI.Gtk.Gdk.GC (gcNew)
-import System.Glib.Types
+  ( Dither (RgbDitherNone),
+    DrawableClass,
+    DrawingArea,
+    EButton,
+    EMotion,
+    EventM,
+    EventMask (ButtonPressMask, ButtonReleaseMask, PointerMotionMask),
+    GObjectClass (..),
+    ObjectClass,
+    Pixbuf,
+    Rectangle (Rectangle),
+    WidgetClass,
+    buttonPressEvent,
+    buttonReleaseEvent,
+    drawPixbuf,
+    drawWindowBeginPaintRect,
+    drawWindowClear,
+    drawWindowEndPaint,
+    drawingAreaNew,
+    eventCoordinates,
+    exposeEvent,
+    motionNotifyEvent,
+    on,
+    pixbufGetHeight,
+    pixbufGetWidth,
+    realize,
+    widgetAddEvents,
+    widgetGetDrawWindow,
+    widgetGetRealized,
+    widgetGetSize,
+    widgetQueueDraw,
+    widgetSetSizeRequest,
+  )
+import Graphics.UI.Gtk.Gdk.GC (GC, gcNew)
+import System.Glib.Types (GObjectClass (unsafeCastGObject))
 
 data Board index tile piece = Board
   { boardDrawingArea :: DrawingArea,
     boardTiles :: GameBoard index tile,
     boardPiecesP1 :: GameBoard index piece,
+    boardPiecesP1Queen :: GameBoard index piece,
     boardPiecesP2 :: GameBoard index piece,
+    boardPiecesP2Queen :: GameBoard index piece,
     tilePixmaps :: PixmapsFor tile,
-    pieceAPixmaps :: PixmapsFor piece,
-    pieceBPixmaps :: PixmapsFor piece,
+    pieceP1Pixmaps :: PixmapsFor piece,
+    pieceP1QueenPixmaps :: PixmapsFor piece,
+    pieceP2Pixmaps :: PixmapsFor piece,
+    pieceP2QueenPixmaps :: PixmapsFor piece,
     tileSize :: (Int, Int),
     background :: IORef (Maybe (Pixbuf, SizeAdjustment)),
     overlay :: IORef (Maybe (Pixbuf, SizeAdjustment)),
@@ -44,7 +94,28 @@ instance ObjectClass (Board index tile piece)
 
 instance GObjectClass (Board index tile piece) where
   toGObject = toGObject . boardDrawingArea
-  unsafeCastGObject x = Board (unsafeCastGObject x) undefined undefined undefined undefined undefined undefined undefined undefined undefined undefined undefined undefined undefined undefined undefined
+  unsafeCastGObject x =
+    Board
+      (unsafeCastGObject x)
+      undefined
+      undefined
+      undefined
+      undefined
+      undefined
+      undefined
+      undefined
+      undefined
+      undefined
+      undefined
+      undefined
+      undefined
+      undefined
+      undefined
+      undefined
+      undefined
+      undefined
+      undefined
+      undefined
 
 type PixmapsFor a = a -> Pixbuf
 
@@ -56,13 +127,17 @@ boardNew ::
   PixmapsFor tile ->
   PixmapsFor piece ->
   PixmapsFor piece ->
+  PixmapsFor piece ->
+  PixmapsFor piece ->
   IO (Board index tile piece)
-boardNew tileList tilePixs pieceAPixs pieceBPixs = do
+boardNew tileList tilePixs pieceP1Asset pieceP1QueenAsset pieceP2Asset pieceP2QueenAsset = do
   da <- drawingAreaNew
 
   tb <- gameBoardNew tileList
   piecesP1 <- gameBoardNewEmpty (map (\(x, y, _) -> (x, y)) tileList)
+  piecesP1Queen <- gameBoardNewEmpty (map (\(x, y, _) -> (x, y)) tileList)
   piecesP2 <- gameBoardNewEmpty (map (\(x, y, _) -> (x, y)) tileList)
+  piecesP2Queen <- gameBoardNewEmpty (map (\(x, y, _) -> (x, y)) tileList)
 
   ts <- getTileSize tileList tilePixs
 
@@ -82,10 +157,14 @@ boardNew tileList tilePixs pieceAPixs pieceBPixs = do
           da
           tb
           piecesP1
+          piecesP1Queen
           piecesP2
+          piecesP2Queen
           tilePixs
-          pieceAPixs
-          pieceBPixs
+          pieceP1Asset
+          pieceP1QueenAsset
+          pieceP2Asset
+          pieceP2QueenAsset
           ts
           bg
           ov
@@ -141,14 +220,14 @@ boardRemovePiece pos board boardPieces = do
 
 -- boardRefresh board
 
-boardMovePiece :: Ix index => (index, index) -> (index, index) -> Board index tile piece -> GameBoard index piece -> IO ()
-boardMovePiece posO posD board boardPieces = do
+boardMovePiece :: Ix index => (index, index) -> (index, index) -> Board index tile piece -> GameBoard index piece -> GameBoard index piece -> IO ()
+boardMovePiece posO posD board boardPiecesOrig boardPiecesDest = do
   -- check that there's a tile there
   posOrigOk <- fmap isJust $ gameBoardGetPiece posO $ boardTiles board
   posDestOk <- fmap isJust $ gameBoardGetPiece posD $ boardTiles board
   when (posOrigOk && posDestOk) $ do
     -- Move the piece
-    gameBoardMovePiece posO posD $ boardPieces
+    gameBoardMovePiece posO posD boardPiecesOrig boardPiecesDest
     -- Refresh the UI
     boardInvalidate board
 
@@ -194,6 +273,15 @@ boardRefresh board = do
           return pieces'
         else return $ boardPiecesP1 board
 
+    -- Draw Pieces P1 Queen
+    piecesBoardP1Queen <-
+      if isJust posM && isJust mpOrig && isJust mpPos
+        then do
+          pieces' <- (gameBoardClone $ boardPiecesP1Queen board)
+          gameBoardRemovePiece (fromJust posM) pieces'
+          return pieces'
+        else return $ boardPiecesP1Queen board
+
     -- Draw Pieces P2
     piecesBoardP2 <-
       if isJust posM && isJust mpOrig && isJust mpPos
@@ -203,15 +291,36 @@ boardRefresh board = do
           return pieces'
         else return $ boardPiecesP2 board
 
+    -- Draw Pieces P2 Queen
+    piecesBoardP2Queen <-
+      if isJust posM && isJust mpOrig && isJust mpPos
+        then do
+          pieces' <- (gameBoardClone $ boardPiecesP2Queen board)
+          gameBoardRemovePiece (fromJust posM) pieces'
+          return pieces'
+        else return $ boardPiecesP2Queen board
+
     -- drawPixmaps dw (tileSize board) (boardPieces board) (piecePixmaps board)
-    drawPixmaps dw (tileSize board) piecesBoardP1 (pieceAPixmaps board)
-    drawPixmaps dw (tileSize board) piecesBoardP2 (pieceBPixmaps board)
+    drawPixmaps dw (tileSize board) piecesBoardP1 (pieceP1Pixmaps board)
+    drawPixmaps dw (tileSize board) piecesBoardP1Queen (pieceP1QueenPixmaps board)
+    drawPixmaps dw (tileSize board) piecesBoardP2 (pieceP2Pixmaps board)
+    drawPixmaps dw (tileSize board) piecesBoardP2Queen (pieceP2QueenPixmaps board)
 
     -- Draw moving piece P1
     when (isJust posM && isJust mpOrig && isJust mpPos) $ do
       pieceM <- boardGetPiece (fromJust posM) (boardPiecesP1 board)
       when (isJust pieceM) $ do
-        let pb = pieceAPixmaps board (fromJust pieceM)
+        let pb = pieceP1Pixmaps board (fromJust pieceM)
+        let (mpPosX, mpPosY) = fromJust mpPos
+            (mpOrigX, mpOrigY) = fromJust mpOrig
+            (x, y) = (mpPosX - mpOrigX, mpPosY - mpOrigY)
+        drawPixbuf dw gc pb 0 0 x y (-1) (-1) RgbDitherNone (-1) (-1)
+
+    -- Draw moving piece P1 Queen
+    when (isJust posM && isJust mpOrig && isJust mpPos) $ do
+      pieceM <- boardGetPiece (fromJust posM) (boardPiecesP1Queen board)
+      when (isJust pieceM) $ do
+        let pb = pieceP1QueenPixmaps board (fromJust pieceM)
         let (mpPosX, mpPosY) = fromJust mpPos
             (mpOrigX, mpOrigY) = fromJust mpOrig
             (x, y) = (mpPosX - mpOrigX, mpPosY - mpOrigY)
@@ -221,7 +330,17 @@ boardRefresh board = do
     when (isJust posM && isJust mpOrig && isJust mpPos) $ do
       pieceM <- boardGetPiece (fromJust posM) (boardPiecesP2 board)
       when (isJust pieceM) $ do
-        let pb = pieceBPixmaps board (fromJust pieceM)
+        let pb = pieceP2Pixmaps board (fromJust pieceM)
+        let (mpPosX, mpPosY) = fromJust mpPos
+            (mpOrigX, mpOrigY) = fromJust mpOrig
+            (x, y) = (mpPosX - mpOrigX, mpPosY - mpOrigY)
+        drawPixbuf dw gc pb 0 0 x y (-1) (-1) RgbDitherNone (-1) (-1)
+
+    -- Draw moving piece P2 Queen
+    when (isJust posM && isJust mpOrig && isJust mpPos) $ do
+      pieceM <- boardGetPiece (fromJust posM) (boardPiecesP2Queen board)
+      when (isJust pieceM) $ do
+        let pb = pieceP2QueenPixmaps board (fromJust pieceM)
         let (mpPosX, mpPosY) = fromJust mpPos
             (mpOrigX, mpOrigY) = fromJust mpOrig
             (x, y) = (mpPosX - mpOrigX, mpPosY - mpOrigY)

@@ -3,21 +3,61 @@
 
 module Graphics.UI.Gtk.Board.BoardLink where
 
-import Control.Monad
-import Data.Board.GameBoardIO
-import Data.IORef
-import Data.Ix
-import Data.Maybe
+import Control.Monad (forM_, when)
+import Data.Board.GameBoardIO (GameBoard)
+import Data.IORef (newIORef, readIORef, writeIORef)
+import Data.Ix (Ix)
+import Data.Maybe (isJust)
 import Game.Board.BasicTurnGame
+  ( GameChange (..),
+    PlayableGame
+      ( allPiecesP1,
+        allPiecesP2,
+        allPos,
+        applyChange,
+        canMove,
+        canMoveTo,
+        curPlayer,
+        curPlayerId,
+        move,
+        moveEnabled
+      ),
+    player1Id,
+  )
 import Graphics.UI.Gtk
+  ( Color (Color),
+    Pixbuf,
+    StateType (StateActive, StateNormal, StatePrelight, StateSelected),
+    widgetModifyBg,
+  )
 import Graphics.UI.Gtk.Board.TiledBoard
+  ( Board (boardPiecesP1, boardPiecesP1Queen, boardPiecesP2, boardPiecesP2Queen),
+    PixmapsFor,
+    SizeAdjustment,
+    boardEnableDrag,
+    boardMovePiece,
+    boardNew,
+    boardOnPieceDragDrop,
+    boardOnPieceDragOver,
+    boardOnPieceDragStart,
+    boardRemovePiece,
+    boardSetBackground,
+    boardSetPiece,
+  )
 
 attachGameRules ::
   (PlayableGame pg index tile player piece, Ix index) =>
   Game pg index tile player piece ->
   IO (Board index tile (player, piece))
 attachGameRules game = do
-  board <- boardNew (allPos $ gameS game) (tileF $ visual game) (pieceA $ visual game) (pieceB $ visual game)
+  board <-
+    boardNew
+      (allPos $ gameS game)
+      (tileF $ visual game)
+      (pieceP1 $ visual game)
+      (pieceP1Queen $ visual game)
+      (pieceP2 $ visual game)
+      (pieceP2Queen $ visual game)
 
   let (r, g, b) = bgColor (visual game)
       (r', g', b') = (fromIntegral r, fromIntegral g, fromIntegral b)
@@ -60,34 +100,47 @@ applyBoardChange ::
   Board index tile (player, piece) ->
   GameChange index player piece ->
   IO ()
-applyBoardChange game board (AddPiece pos player piece) = boardSetPiece pos (player, piece) board (boardPiecesCurrentPlayer game board)
-applyBoardChange game board (RemovePiece pos player) = boardRemovePiece pos board (boardPiecesCurrentPlayer game board)
-applyBoardChange game board (RemovePieceOtherPlayer pos player) = boardRemovePiece pos board (boardPiecesOtherPlayer game board)
-applyBoardChange game board (MovePiece posO posD player) = boardMovePiece posO posD board (boardPiecesCurrentPlayer game board)
-applyBoardChange game board (FinishMove posO posD player) = return ()
+applyBoardChange game board (AddPiece pos player piece queen) = boardSetPiece pos (player, piece) board (boardPiecesCurrentPlayer game board queen)
+applyBoardChange game board (RemovePiece pos queen) = boardRemovePiece pos board (boardPiecesCurrentPlayer game board queen)
+applyBoardChange game board (RemovePieceOtherPlayer pos queen) = boardRemovePiece pos board (boardPiecesOtherPlayer game board queen)
+applyBoardChange game board (MovePiece posO posD queen) =
+  boardMovePiece posO posD board (boardPiecesCurrentPlayer game board queen) (boardPiecesCurrentPlayer game board queen)
+applyBoardChange game board (TurnPieceQueen pos) =
+  boardMovePiece pos pos board (boardPiecesCurrentPlayer game board False) (boardPiecesCurrentPlayer game board True)
+applyBoardChange game board (FinishMove _) = return ()
 
 boardPiecesCurrentPlayer ::
   PlayableGame pg index tile player piece =>
   pg ->
   Board index tile (player, piece) ->
+  Bool ->
   GameBoard index (player, piece)
-boardPiecesCurrentPlayer game board
+boardPiecesCurrentPlayer game board False
   | (curPlayerId game) == player1Id = (boardPiecesP1 board)
   | otherwise = (boardPiecesP2 board)
+boardPiecesCurrentPlayer game board True
+  | (curPlayerId game) == player1Id = (boardPiecesP1Queen board)
+  | otherwise = (boardPiecesP2Queen board)
 
 boardPiecesOtherPlayer ::
   PlayableGame pg index tile player piece =>
   pg ->
   Board index tile (player, piece) ->
+  Bool ->
   GameBoard index (player, piece)
-boardPiecesOtherPlayer game board
+boardPiecesOtherPlayer game board False
   | (curPlayerId game) == player1Id = (boardPiecesP2 board)
   | otherwise = (boardPiecesP1 board)
+boardPiecesOtherPlayer game board True
+  | (curPlayerId game) == player1Id = (boardPiecesP2Queen board)
+  | otherwise = (boardPiecesP1Queen board)
 
 data VisualGameAspects index tile player piece = VisualGameAspects
   { tileF :: PixmapsFor tile,
-    pieceA :: PixmapsFor (player, piece),
-    pieceB :: PixmapsFor (player, piece),
+    pieceP1 :: PixmapsFor (player, piece),
+    pieceP1Queen :: PixmapsFor (player, piece),
+    pieceP2 :: PixmapsFor (player, piece),
+    pieceP2Queen :: PixmapsFor (player, piece),
     bgColor :: (Int, Int, Int),
     bg :: Maybe (Pixbuf, SizeAdjustment)
   }
