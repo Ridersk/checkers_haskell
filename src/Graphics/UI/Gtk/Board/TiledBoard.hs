@@ -428,6 +428,9 @@ boardFoldM boardPieces f def = gameBoardFoldM boardPieces f def
 boardClear :: Ix index => Board index tile piece -> IO ()
 boardClear board = do
   gameBoardClear (boardPiecesP1 board)
+  gameBoardClear (boardPiecesP1Queen board)
+  gameBoardClear (boardPiecesP2 board)
+  gameBoardClear (boardPiecesP2Queen board)
   boardInvalidate board
 
 boardOnClick :: Ix index => Board index tile piece -> ((index, index) -> IO ()) -> IO ()

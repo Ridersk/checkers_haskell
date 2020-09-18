@@ -43,7 +43,7 @@ Adicione 2 ou mais screenshots do projeto em termos de interface e/ou funcioname
 
 ## Vídeo  
 
-* [Vídeo no Youtube](https://www.youtube.com/watch?v=UYTGQch-JsQ&t=3s&ab_channel=LucasMaciel)
+* [Vídeo no Youtube](https://www.youtube.com/watch?v=QQX5YtEa3Rs&ab_channel=LucasMaciel)
 
 ## Outros  
 

@@ -3,17 +3,6 @@
 
 import Control.Monad.Trans (liftIO)
 import Graphics.UI.Gtk
-  ( alignmentNew,
-    containerAdd,
-    deleteEvent,
-    initGUI,
-    mainGUI,
-    mainQuit,
-    on,
-    widgetSetSizeRequest,
-    widgetShowAll,
-    windowNew,
-  )
 import Graphics.UI.Gtk.Board.BoardLink (attachGameRules)
 import Graphics.UI.Gtk.Layout.BackgroundContainer
   ( backgroundContainerNewWithPicture,
@@ -23,24 +12,28 @@ import GtkCheckers (gtkGame)
 main :: IO ()
 main = do
   -- Inicializa o GTK
-  _ <- initGUI
+  initGUI
 
-  -- Cria Interface
-  window <- windowNew
-  background <- backgroundContainerNewWithPicture "assets/table-background.jpg"
-  align <- alignmentNew 0.5 0.5 0 0
-
-  -- Cria Tabuleiro
   game <- gtkGame
   board <- attachGameRules game
 
-  -- Adiciona hierarquia de Widgets
-  containerAdd align board
-  containerAdd background align
-  containerAdd window background
+  -- Cria Interface
+  window <- windowNew
+  set
+    window
+    [ windowTitle := "Checkers",
+      windowDefaultWidth := 800,
+      windowDefaultHeight := 600,
+      containerBorderWidth := 10
+    ]
 
-  -- Tamanho da Janela
-  widgetSetSizeRequest window 800 600
+  background <- backgroundContainerNewWithPicture "assets/table-background.jpg"
+  align <- alignmentNew 0.5 0.5 0 0
+
+  -- Adiciona hierarquia de Widgets
+  containerAdd window background
+  containerAdd background align
+  containerAdd align board
 
   -- Fecha programa se a janela eh fechada
   _ <- window `on` deleteEvent $ liftIO mainQuit >> return False

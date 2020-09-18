@@ -1,6 +1,8 @@
 module CheckersUtils
   ( hasPiece,
+    hasNearPiecesToBeCaptured,
     getPieceAt,
+    hasTile,
     getTileAt,
     piecesCurrentPlayer,
     piecesOtherPlayer,
@@ -26,11 +28,14 @@ import Game.Board.BasicTurnGame
   )
 
 hasPiece :: Ix index => GameState index tile player piece -> [(index, index, player, piece)] -> (index, index) -> Bool
-hasPiece game pieces ix = isJust (getPieceAt game pieces ix)
+hasPiece game pieces pos = isJust (getPieceAt game pieces pos)
 
 getPieceAt :: Ix index => GameState index tile player piece -> [(index, index, player, piece)] -> (index, index) -> Maybe (player, piece)
 getPieceAt game pieces (posX, posY) =
   listToMaybe [(player, piece) | (x, y, player, piece) <- pieces, x == posX, y == posY]
+
+hasTile :: Ix index => GameState index tile player piece -> [(index, index, tile)] -> (index, index) -> Bool
+hasTile game tiles pos = isJust (getTileAt game tiles pos)
 
 getTileAt :: Ix index => GameState index tile player piece -> [(index, index, tile)] -> (index, index) -> Maybe (tile)
 getTileAt game tiles (posX, posY) =
@@ -103,3 +108,16 @@ getPosPieceDiagonalMove game pieces (xOrig, yOrig) (xDest, yDest) =
 
 getPosFromJust :: Maybe (index, index) -> (index, index)
 getPosFromJust (Just (x, y)) = (x, y)
+
+hasNearPiecesToBeCaptured ::
+  (Ix index, Num index) =>
+  GameState index tile player piece ->
+  [(index, index, player, piece)] ->
+  (index, index) ->
+  index ->
+  Bool
+hasNearPiecesToBeCaptured game pieces pos@(xPos, yPos) boardLimit =
+  (boardLimit > max (xPos + 1) (yPos - 1) && min (xPos + 1) (yPos - 1) > 0 && hasPiece game pieces (xPos + 1, yPos - 1) && not (hasPiece game pieces (xPos + 2, yPos - 2)))
+    || (boardLimit > max (xPos + 1) (yPos + 1) && min (xPos + 1) (yPos + 1) > 0 && hasPiece game pieces (xPos + 1, yPos + 1) && not (hasPiece game pieces (xPos + 2, yPos + 2)))
+    || (boardLimit > max (xPos - 1) (yPos + 1) && min (xPos - 1) (yPos + 1) > 0 && hasPiece game pieces (xPos - 1, yPos + 1) && not (hasPiece game pieces (xPos - 2, yPos + 2)))
+    || (boardLimit > max (xPos - 1) (yPos - 1) && min (xPos - 1) (yPos - 1) > 0 && hasPiece game pieces (xPos - 1, yPos - 1) && not (hasPiece game pieces (xPos - 2, yPos - 2)))

@@ -46,7 +46,7 @@ import Graphics.UI.Gtk.Board.TiledBoard
   )
 
 attachGameRules ::
-  (PlayableGame pg index tile player piece, Ix index) =>
+  (PlayableGame pg index tile player piece moveType, Ix index) =>
   Game pg index tile player piece ->
   IO (Board index tile (player, piece))
 attachGameRules game = do
@@ -95,10 +95,10 @@ attachGameRules game = do
   return board
 
 applyBoardChange ::
-  (PlayableGame pg index tile player piece, Ix index) =>
+  (PlayableGame pg index tile player piece moveType, Ix index) =>
   pg ->
   Board index tile (player, piece) ->
-  GameChange index player piece ->
+  GameChange index player piece moveType ->
   IO ()
 applyBoardChange game board (AddPiece pos player piece queen) = boardSetPiece pos (player, piece) board (boardPiecesCurrentPlayer game board queen)
 applyBoardChange game board (RemovePiece pos queen) = boardRemovePiece pos board (boardPiecesCurrentPlayer game board queen)
@@ -107,10 +107,13 @@ applyBoardChange game board (MovePiece posO posD queen) =
   boardMovePiece posO posD board (boardPiecesCurrentPlayer game board queen) (boardPiecesCurrentPlayer game board queen)
 applyBoardChange game board (TurnPieceQueen pos) =
   boardMovePiece pos pos board (boardPiecesCurrentPlayer game board False) (boardPiecesCurrentPlayer game board True)
-applyBoardChange game board (FinishMove _) = return ()
+applyBoardChange game board (BlockBoard _) = return ()
+applyBoardChange game board (ReleaseBoard) = return ()
+applyBoardChange game board (SwitchPlayer _) = return ()
+applyBoardChange game board (FinishMove _ _ _) = return ()
 
 boardPiecesCurrentPlayer ::
-  PlayableGame pg index tile player piece =>
+  PlayableGame pg index tile player piece moveType =>
   pg ->
   Board index tile (player, piece) ->
   Bool ->
@@ -123,7 +126,7 @@ boardPiecesCurrentPlayer game board True
   | otherwise = (boardPiecesP2Queen board)
 
 boardPiecesOtherPlayer ::
-  PlayableGame pg index tile player piece =>
+  PlayableGame pg index tile player piece moveType =>
   pg ->
   Board index tile (player, piece) ->
   Bool ->
