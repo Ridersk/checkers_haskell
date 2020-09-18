@@ -8,9 +8,6 @@ module Game.Board.BasicTurnGame
     GameChange (..),
     GameState (..),
     PlayableGame (..),
-    hasPiece,
-    getPieceAt,
-    getTileAt,
     player1Id,
     player2Id,
   )
@@ -40,18 +37,6 @@ data GameChange index player piece
   | MovePiece (index, index) (index, index) Bool
   | TurnPieceQueen (index, index)
   | FinishMove player
-
--- FIXME: Wrong data structure => use unmutable matrices
-hasPiece :: Ix index => GameState index tile player piece -> [(index, index, player, piece)] -> (index, index) -> Bool
-hasPiece game pieces ix = isJust (getPieceAt game pieces ix)
-
-getPieceAt :: Ix index => GameState index tile player piece -> [(index, index, player, piece)] -> (index, index) -> Maybe (player, piece)
-getPieceAt game pieces (posX, posY) =
-  listToMaybe [(player, piece) | (x, y, player, piece) <- pieces, x == posX, y == posY]
-
-getTileAt :: Ix index => GameState index tile player piece -> [(index, index, tile)] -> (index, index) -> Maybe (tile)
-getTileAt game tiles (posX, posY) =
-  listToMaybe [(tile) | (x, y, tile) <- tiles, x == posX, y == posY]
 
 data GameState index tile player piece = GameState
   { curPlayer' :: player,

@@ -9,6 +9,17 @@ module Checkers
   )
 where
 
+import CheckersUtils
+  ( getPieceAt,
+    getPosFromJust,
+    getPosPieceDiagonalCapture,
+    getTileAt,
+    hasPiece,
+    hasPieceDiagonalCapture,
+    hasPieceDiagonalMove,
+    piecesCurrentPlayer,
+    piecesOtherPlayer,
+  )
 import Data.Ix (Ix)
 import Data.Maybe (isJust, listToMaybe)
 import Game.Board.BasicTurnGame
@@ -18,9 +29,6 @@ import Game.Board.BasicTurnGame
     PlayableGame (..),
     Player (..),
     Tile (..),
-    getPieceAt,
-    getTileAt,
-    hasPiece,
     player1Id,
     player2Id,
   )
@@ -50,74 +58,6 @@ defaultCheckersGame =
     allTiles = [(x, y, Tile) | x <- [0 .. boardSize - 1] :: [Int], y <- [0 .. boardSize - 1] :: [Int], (x + y) `mod` 2 == 0]
     piecesPA = [(x, y, Player1, Normal) | (x, y, _) <- allTiles, y >= piecesPlayerAStart]
     piecesPB = [(x, y, Player2, Normal) | (x, y, _) <- allTiles, y <= piecesPlayerBEnd]
-
-piecesCurrentPlayer :: GameState index tile Player piece -> [(index, index, Player, piece)]
-piecesCurrentPlayer game
-  | curPlayer' game == Player1 = piecesP1 game
-  | otherwise = piecesP2 game
-
-piecesOtherPlayer :: GameState index tile Player piece -> [(index, index, Player, piece)]
-piecesOtherPlayer game
-  | curPlayer' game == Player1 = piecesP2 game
-  | otherwise = piecesP1 game
-
-hasPieceDiagonalCapture ::
-  (Ix index, Num index) =>
-  GameState index tile player piece ->
-  [(index, index, player, piece)] ->
-  (index, index) ->
-  (index, index) ->
-  Bool
-hasPieceDiagonalCapture game pieces (xOrig, yOrig) (xDest, yDest) =
-  isJust (getPosPieceDiagonalCapture game pieces (xOrig, yOrig) (xDest, yDest))
-
-getPosPieceDiagonalCapture ::
-  (Ix index, Num index) =>
-  GameState index tile player piece ->
-  [(index, index, player, piece)] ->
-  (index, index) ->
-  (index, index) ->
-  Maybe (index, index)
-getPosPieceDiagonalCapture game pieces (xOrig, yOrig) (xDest, yDest) =
-  returnIfFoundOnlyOnePiece [(x, y) | (x, y, _, _) <- pieces, abs (x - xOrig) == abs (y - yOrig), x > minX, x < maxX, y > minY, y < maxY]
-  where
-    minX = (min xOrig xDest)
-    maxX = (max xOrig xDest)
-    minY = (min yOrig yDest)
-    maxY = (max yOrig yDest)
-    returnIfFoundOnlyOnePiece (h : t)
-      | length t == 0 = Just h
-      | otherwise = Nothing
-    returnIfFoundOnlyOnePiece [] =
-      Nothing
-
-hasPieceDiagonalMove ::
-  (Ix index, Num index) =>
-  GameState index tile player piece ->
-  [(index, index, player, piece)] ->
-  (index, index) ->
-  (index, index) ->
-  Bool
-hasPieceDiagonalMove game pieces (xOrig, yOrig) (xDest, yDest) =
-  isJust (getPosPieceDiagonalMove game pieces (xOrig, yOrig) (xDest, yDest))
-
-getPosPieceDiagonalMove ::
-  (Ix index, Num index) =>
-  GameState index tile player piece ->
-  [(index, index, player, piece)] ->
-  (index, index) ->
-  (index, index) ->
-  Maybe (index, index)
-getPosPieceDiagonalMove game pieces (xOrig, yOrig) (xDest, yDest) =
-  listToMaybe [(x, y) | (x, y, _, _) <- pieces, abs (x - xOrig) == abs (y - yOrig), x > minX, x < maxX, y > minY, y < maxY]
-  where
-    minX = (min xOrig xDest)
-    maxX = (max xOrig xDest)
-    minY = (min yOrig yDest)
-    maxY = (max yOrig yDest)
-
-getPosFromJust :: Maybe (index, index) -> (index, index)
-getPosFromJust (Just (x, y)) = (x, y)
 
 instance PlayableGame CheckersGame Int Tile Player Piece where
   -- "Static" game view

@@ -22,6 +22,7 @@ executable checkers
   other-modules:
     Checkers
     GtkCheckers
+    CheckersUtils
     Data.Board.GameBoardIO
     Game.Board.BasicTurnGame
     Graphics.UI.Gtk.Board.BoardLink
