@@ -43,7 +43,7 @@ Adicione 2 ou mais screenshots do projeto em termos de interface e/ou funcioname
 
 ## Vídeo  
 
-Adicione 1 ou mais vídeos com a execução do projeto.
+* [Vídeo no Youtube](https://www.youtube.com/watch?v=UYTGQch-JsQ&t=3s&ab_channel=LucasMaciel)
 
 ## Outros  
 
@@ -51,4 +51,4 @@ Quaisquer outras informações sobre seu projeto podem ser descritas a seguir.
 
 ## Fontes
 
-* __Repositório com módulos úteis para construção de jogos de tabuleiro simples (Keera-studios):__ <https://github.com/keera-studios/gtk-helpers>
+* [Repositório com módulos úteis para construção de jogos de tabuleiro simples (Keera-studios)](https://github.com/keera-studios/gtk-helpers)
